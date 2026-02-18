@@ -10,7 +10,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/github/license/fujiacheng3/MouseScope" alt="License"/>
+  <img src="https://img.shields.io/badge/License-GPL--3.0-blue.svg" alt="License"/>
   <img src="https://img.shields.io/badge/python-3.9+-blue.svg" alt="Python"/>
   <img src="https://img.shields.io/badge/platform-Windows-lightgrey.svg" alt="Platform"/>
   <img src="https://img.shields.io/github/stars/fujiacheng3/MouseScope?style=social" alt="GitHub stars"/>
