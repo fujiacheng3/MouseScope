@@ -1,0 +1,675 @@
+{% extends "base.html" %}
+
+{% block title %}操作手册 - MouseScope{% endblock %}
+
+{% block extra_css %}
+<style>
+    .manual-section {
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 12px;
+        padding: 2rem;
+        margin-bottom: 2rem;
+    }
+
+    .manual-section h3 {
+        color: var(--accent-color);
+        border-bottom: 2px solid rgba(0, 242, 254, 0.3);
+        padding-bottom: 0.75rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .step-number {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 36px;
+        height: 36px;
+        background: var(--primary-gradient);
+        border-radius: 50%;
+        color: white;
+        font-weight: 700;
+        font-size: 1rem;
+        margin-right: 0.75rem;
+        flex-shrink: 0;
+    }
+
+    .sub-step {
+        background: rgba(255, 255, 255, 0.03);
+        border-left: 3px solid rgba(0, 242, 254, 0.4);
+        padding: 1rem 1.25rem;
+        margin: 0.75rem 0;
+        border-radius: 0 8px 8px 0;
+    }
+
+    .sub-step h5 {
+        color: #e0e0e0;
+        margin-bottom: 0.5rem;
+    }
+
+    .example-comparison {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1.5rem;
+    }
+
+    @media (max-width: 768px) {
+        .example-comparison {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    .example-card {
+        border-radius: 12px;
+        overflow: hidden;
+        border: 2px solid rgba(255, 255, 255, 0.1);
+        transition: transform 0.3s;
+    }
+
+    .example-card:hover {
+        transform: translateY(-3px);
+    }
+
+    .example-card.good {
+        border-color: rgba(40, 167, 69, 0.5);
+    }
+
+    .example-card.bad {
+        border-color: rgba(220, 53, 69, 0.5);
+    }
+
+    .example-card img {
+        width: 100%;
+        height: auto;
+        display: block;
+    }
+
+    .example-card .example-label {
+        padding: 0.75rem 1rem;
+        font-weight: 600;
+        font-size: 0.95rem;
+    }
+
+    .example-card.good .example-label {
+        background: rgba(40, 167, 69, 0.2);
+        color: #5cb85c;
+    }
+
+    .example-card.bad .example-label {
+        background: rgba(220, 53, 69, 0.2);
+        color: #d9534f;
+    }
+
+    .param-explain-table td,
+    .param-explain-table th {
+        vertical-align: middle;
+        padding: 0.6rem 0.75rem;
+    }
+
+    .param-explain-table .param-name {
+        color: var(--accent-color);
+        font-weight: 600;
+        white-space: nowrap;
+    }
+
+    .op-icon {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 28px;
+        height: 28px;
+        border-radius: 6px;
+        font-size: 0.75rem;
+        margin-right: 0.4rem;
+        flex-shrink: 0;
+    }
+
+    .op-icon.click {
+        background: rgba(0, 123, 255, 0.2);
+        color: #4dabf7;
+    }
+
+    .op-icon.drag {
+        background: rgba(255, 193, 7, 0.2);
+        color: #ffc107;
+    }
+
+    .op-icon.key {
+        background: rgba(40, 167, 69, 0.2);
+        color: #51cf66;
+    }
+
+    .op-icon.input {
+        background: rgba(156, 39, 176, 0.2);
+        color: #ce93d8;
+    }
+
+    .tip-box {
+        background: rgba(0, 242, 254, 0.08);
+        border: 1px solid rgba(0, 242, 254, 0.2);
+        border-radius: 8px;
+        padding: 1rem 1.25rem;
+        margin: 1rem 0;
+    }
+
+    .warning-box {
+        background: rgba(255, 193, 7, 0.08);
+        border: 1px solid rgba(255, 193, 7, 0.3);
+        border-radius: 8px;
+        padding: 1rem 1.25rem;
+        margin: 1rem 0;
+    }
+
+    .nav-sidebar .list-group-item {
+        background: rgba(255, 255, 255, 0.05);
+        border-color: rgba(255, 255, 255, 0.1);
+        color: var(--text-secondary);
+        transition: all 0.2s;
+    }
+
+    .nav-sidebar .list-group-item:hover,
+    .nav-sidebar .list-group-item.active {
+        background: rgba(0, 242, 254, 0.15);
+        color: var(--accent-color);
+        border-color: rgba(0, 242, 254, 0.3);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-2">
+    <!-- 页面标题 -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="display-6 gradient-text mb-1">
+                <i class="fas fa-book-open me-3"></i><span data-i18n="manual.h1">操作手册</span>
+            </h1>
+            <p class="text-secondary mb-0" data-i18n="manual.subtitle">从视频采集到拿到结果，每一步该怎么做</p>
+        </div>
+        <a href="{{ url_for('index') }}" class="btn btn-outline-primary">
+            <i class="fas fa-arrow-left me-2"></i><span data-i18n="manual.btn.back">返回首页</span>
+        </a>
+    </div>
+
+    <div class="row">
+        <!-- 左侧导航 -->
+        <div class="col-lg-3 mb-4">
+            <div class="nav-sidebar list-group sticky-top" style="top: 20px; z-index: 1;">
+                <a href="#sec-video" class="list-group-item list-group-item-action">
+                    <span class="step-number" style="width:26px;height:26px;font-size:0.8rem;">0</span><span data-i18n="manual.nav.sec0">视频采集要求</span>
+                </a>
+                <a href="#sec-upload" class="list-group-item list-group-item-action">
+                    <span class="step-number" style="width:26px;height:26px;font-size:0.8rem;">1</span><span data-i18n="manual.nav.sec1">上传视频</span>
+                </a>
+                <a href="#sec-calib" class="list-group-item list-group-item-action">
+                    <span class="step-number" style="width:26px;height:26px;font-size:0.8rem;">2</span><span data-i18n="manual.nav.sec2">体长标定</span>
+                </a>
+                <a href="#sec-roi" class="list-group-item list-group-item-action">
+                    <span class="step-number" style="width:26px;height:26px;font-size:0.8rem;">3</span><span data-i18n="manual.nav.sec3">绘制 ROI</span>
+                </a>
+                <a href="#sec-debug" class="list-group-item list-group-item-action">
+                    <span class="step-number" style="width:26px;height:26px;font-size:0.8rem;">4</span><span data-i18n="manual.nav.sec4">参数调试</span>
+                </a>
+                <a href="#sec-monitor" class="list-group-item list-group-item-action">
+                    <span class="step-number" style="width:26px;height:26px;font-size:0.8rem;">5</span><span data-i18n="manual.nav.sec5">监控与结果</span>
+                </a>
+                <a href="#sec-params" class="list-group-item list-group-item-action">
+                    <i class="fas fa-sliders-h me-2"></i><span data-i18n="manual.nav.params">参数速查表</span>
+                </a>
+            </div>
+        </div>
+
+        <!-- 右侧内容 -->
+        <div class="col-lg-9">
+
+            <!-- ===== 第0步：视频采集 ===== -->
+            <div class="manual-section" id="sec-video">
+                <h3><span class="step-number">0</span><span data-i18n="manual.sec0.title">视频采集要求</span></h3>
+
+                <p data-i18n="manual.sec0.intro" data-i18n-html>分析结果的准确性<strong>完全取决于视频质量</strong>。在录制悬尾实验视频时，请严格遵循以下要求：</p>
+
+                <div class="sub-step">
+                    <h5><i class="fas fa-camera me-2"></i><span data-i18n="manual.sec0.camera.title">机位与背景</span></h5>
+                    <ul class="mb-0">
+                        <li data-i18n="manual.sec0.camera.li1" data-i18n-html>相机<strong>正对小鼠侧面</strong>拍摄，保持水平，不要有角度倒斜</li>
+                        <li data-i18n="manual.sec0.camera.li2" data-i18n-html>背景必须<strong>干净、均匀、与小鼠颜色有明显对比</strong>（白色小鼠用深色背景，黑色小鼠用浅色背景）</li>
+                        <li data-i18n="manual.sec0.camera.li3" data-i18n-html>背景中<strong>不能有其他运动物体</strong>（走动的人、晒动的线缆等）</li>
+                        <li data-i18n="manual.sec0.camera.li4" data-i18n-html>相机固定在三脚架上，<strong>全程不能移动</strong></li>
+                    </ul>
+                </div>
+
+                <div class="sub-step">
+                    <h5><i class="fas fa-lightbulb me-2"></i><span data-i18n="manual.sec0.light.title">光照</span></h5>
+                    <ul class="mb-0">
+                        <li data-i18n="manual.sec0.light.li1" data-i18n-html>光线<strong>均匀、稳定</strong>，不能忽明忽暗</li>
+                        <li data-i18n="manual.sec0.light.li2">避免强光直射产生高光反射或阴影</li>
+                        <li data-i18n="manual.sec0.light.li3">小鼠身体上不能有大面积的阴影或反光</li>
+                    </ul>
+                </div>
+
+                <div class="sub-step">
+                    <h5><i class="fas fa-video me-2"></i><span data-i18n="manual.sec0.rec.title">录制参数</span></h5>
+                    <ul class="mb-0">
+                        <li data-i18n="manual.sec0.rec.li1">格式推荐 MP4 (H.264)，也支持 AVI、MOV、MKV、WMV</li>
+                        <li data-i18n="manual.sec0.rec.li2" data-i18n-html>如果一个画面中有多只小鼠，确保它们之间<strong>不会互相遗挡</strong></li>
+                    </ul>
+                </div>
+
+                <h5 class="mt-4 mb-3"><i class="fas fa-images me-2"></i><span data-i18n="manual.sec0.examples.title">实拍示例对比</span></h5>
+                <div class="example-comparison">
+                    <div class="example-card good">
+                        <img src="{{ url_for('static', filename='img/example_good.png') }}" alt="好的示例">
+                        <div class="example-label">
+                            <i class="fas fa-check-circle me-2"></i><span data-i18n="manual.sec0.good.label">正确示例</span>
+                            <div class="small fw-normal mt-1" style="color: #aaa;" data-i18n="manual.sec0.good.desc">背景干净均匀，小鼠轮廓清晰，光照稳定无阴影，相机水平固定</div>
+                        </div>
+                    </div>
+                    <div class="example-card bad">
+                        <img src="{{ url_for('static', filename='img/example_bad.png') }}" alt="差的示例">
+                        <div class="example-label">
+                            <i class="fas fa-times-circle me-2"></i><span data-i18n="manual.sec0.bad.label">错误示例</span>
+                            <div class="small fw-normal mt-1" style="color: #aaa;" data-i18n="manual.sec0.bad.desc">距离过近，视角倾斜，相机俯视/仰视 </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="warning-box mt-3">
+                    <i class="fas fa-exclamation-triangle me-2 text-warning"></i>
+                    <strong data-i18n="manual.sec0.warning">如果视频质量差，后续无论怎么调参数都无法得到准确结果。请在录制阶段就把条件控制好。</strong>
+                </div>
+            </div>
+
+            <!-- ===== 第1步：上传视频 ===== -->
+            <div class="manual-section" id="sec-upload">
+                <h3><span class="step-number">1</span><span data-i18n="manual.sec1.title">上传视频</span></h3>
+
+                <p data-i18n="manual.sec1.intro">打开首页后，你会看到两种上传方式，选择其中一种即可：</p>
+
+                <div class="sub-step">
+                    <h5><span class="op-icon drag"><i class="fas fa-hand-pointer"></i></span><span data-i18n="manual.sec1.way1.title">方式一：网页上传</span></h5>
+                    <ol>
+                        <li data-i18n="manual.sec1.way1.li1" data-i18n-html>点击<strong>"选择文件"</strong>按鈕，或者直接把视频文件<strong>拖拽到虚线框</strong>内</li>
+                        <li data-i18n="manual.sec1.way1.li2">可以一次选择多个视频文件，系统会批量处理</li>
+                        <li data-i18n="manual.sec1.way1.li3">选择完成后，下方会显示文件数量和总大小</li>
+                    </ol>
+                </div>
+
+                <div class="sub-step">
+                    <h5><span class="op-icon input"><i class="fas fa-keyboard"></i></span><span data-i18n="manual.sec1.way2.title">方式二：本地路径</span></h5>
+                    <ol>
+                        <li data-i18n="manual.sec1.way2.li1" data-i18n-html>切换到<strong>"服务器本地路径"标签页</strong></li>
+                        <li data-i18n="manual.sec1.way2.li2" data-i18n-html>在文本框中输入视频文件或文件夹的<strong>完整路径</strong>，每行一个</li>
+                        <li data-i18n="manual.sec1.way2.li3">如果输入的是文件夹路径，系统会自动扫描里面的所有视频文件</li>
+                        <li data-i18n="manual.sec1.way2.li4" data-i18n-html>点击<strong>"验证路径"确认路径有效</strong></li>
+                    </ol>
+                </div>
+
+                <div class="sub-step">
+                    <h5><span class="op-icon input"><i class="fas fa-cog"></i></span><span data-i18n="manual.sec1.config.title">配置项（选填）</span></h5>
+                    <ul>
+                        <li data-i18n="manual.sec1.config.li1" data-i18n-html><strong>开始秒数 / 结束秒数</strong> — 如果你只想分析视频的某一段，就在这里填写。比如视频前 10 秒是准备阶段不需要分析，就在"开始秒数"填 <code>10</code></li>
+                        <li data-i18n="manual.sec1.config.li2" data-i18n-html><strong>输出文件夹</strong> — 指定分析结果保存到哪个文件夹。留空则保存到程序默认目录。填写后结果文件会直接存到你指定的位置，分析完可以直接在文件管理器里打开查看</li>
+                    </ul>
+                </div>
+
+                <p data-i18n="manual.sec1.submit" data-i18n-html>一切填好后，点击<strong>"开始分析配置"按鈕进入下一步。</strong></p>
+            </div>
+
+            <!-- ===== 第2步：体长标定 ===== -->
+            <div class="manual-section" id="sec-calib">
+                <h3><span class="step-number">2</span><span data-i18n="manual.sec2.title">体长标定（步骤 1/3）</span></h3>
+
+                <p data-i18n="manual.sec2.intro">这一步的目的是告诉系统"画面中多少像素等于现实中多少毫米"，这样后续输出的运动速度等数据才有物理单位。</p>
+
+                <div class="sub-step">
+                    <h5><span class="op-icon click"><i class="fas fa-mouse-pointer"></i></span><span data-i18n="manual.sec2.how.title">具体操作</span></h5>
+                    <ol>
+                        <li data-i18n="manual.sec2.how.li1" data-i18n-html>拖动画面上方的<strong>帧滑块</strong>，找到一帧能看清某只小鼠完整身体的画面</li>
+                        <li data-i18n="manual.sec2.how.li2" data-i18n-html>在画面中<strong>点击小鼠的鼻尖</strong>（第一个点，绿色标记）</li>
+                        <li data-i18n="manual.sec2.how.li3" data-i18n-html>再<strong>点击小鼠的尾根部</strong>（第二个点，红色标记）。两点之间会连一条黄色线段</li>
+                        <li data-i18n="manual.sec2.how.li4" data-i18n-html>点击<strong>"确认标定"</strong>按钮。系统会按照标准体长自动计算像素-毫米比例</li>
+                    </ol>
+                </div>
+
+                <p class="mb-0"><strong data-i18n="manual.sec2.btns.title">操作按钮说明：</strong></p>
+                <ul>
+                    <li data-i18n="manual.sec2.btns.li1" data-i18n-html><strong>清除重画</strong> — 删掉已经点的标定点，重新来</li>
+                    <li data-i18n="manual.sec2.btns.li2" data-i18n-html><strong>确认标定</strong> — 两个点都点好后，点这个按钮完成标定并自动进入下一步</li>
+                    <li data-i18n="manual.sec2.btns.li3" data-i18n-html><strong>跳过(使用默认)</strong> — 不标定，使用 1 像素 = 1 毫米的默认比例</li>
+                </ul>
+            </div>
+
+            <!-- ===== 第3步：绘制 ROI ===== -->
+            <div class="manual-section" id="sec-roi">
+                <h3><span class="step-number">3</span><span data-i18n="manual.sec3.title">绘制 ROI 区域（步骤 2/3）</span></h3>
+
+                <p data-i18n="manual.sec3.intro" data-i18n-html>ROI = Region of Interest（感兴趣区域）。你需要<strong>为画面中的每一只小鼠画一个多边形框</strong>，告诉系统在哪个区域里去检测和追踪。</p>
+
+                <div class="sub-step">
+                    <h5><span class="op-icon click"><i class="fas fa-mouse-pointer"></i></span><span data-i18n="manual.sec3.how.title">画 ROI 的方法</span></h5>
+                    <ol>
+                        <li data-i18n="manual.sec3.how.li1" data-i18n-html>在画面上<strong>逐点点击</strong>，每点一下就是多边形的一个顶点。把小鼠的活动范围（包括悬挂后摆动的范围）都框进去</li>
+                        <li data-i18n="manual.sec3.how.li2" data-i18n-html>至少需要 3 个顶点。画好后，<strong>点击"完成当前ROI"</strong>，或者直接<strong>双击画面</strong>也可以完成</li>
+                        <li data-i18n="manual.sec3.how.li3" data-i18n-html>如果画面中有多只小鼠，点击<strong>"添加新ROI"</strong>按钮，然后重复上述操作画第二个、第三个……</li>
+                    </ol>
+                </div>
+
+                <div class="sub-step">
+                    <h5><span class="op-icon key"><i class="fas fa-mouse"></i></span><span data-i18n="manual.sec3.shortcut.title">快捷操作</span></h5>
+                    <ul>
+                        <li data-i18n="manual.sec3.shortcut.li1" data-i18n-html><strong>双击画面</strong> — 直接完成当前 ROI（等同于点"完成当前ROI"按钮）</li>
+                        <li data-i18n="manual.sec3.shortcut.li2" data-i18n-html><strong>右键点击画面</strong> — 撤销最后一个点（等同于点"撤销一点"按钮）</li>
+                        <li data-i18n="manual.sec3.shortcut.li3" data-i18n-html>拖动<strong>帧滑块</strong>可以切换到不同帧查看，确保 ROI 框住了小鼠的整个活动范围</li>
+                    </ul>
+                </div>
+
+                <div class="sub-step">
+                    <h5><span class="op-icon click"><i class="fas fa-cog"></i></span><span data-i18n="manual.sec3.indiv.title">ROI 单独设置</span></h5>
+                    <p data-i18n="manual.sec3.indiv.p" data-i18n-html>每个 ROI 右侧有一个 <i class="fas fa-cog text-info"></i> 齿轮按钮，点击展开设置面板：</p>
+                    <ul>
+                        <li data-i18n="manual.sec3.indiv.li.name" data-i18n-html><strong>ROI 名称</strong> — 给这个区域起个名字（比如"1号鼠"、"对照组"），方便后续看结果时区分</li>
+                        <li data-i18n="manual.sec3.indiv.time" data-i18n-html><strong>时间控制模式</strong>：
+                            <ul>
+                                <li data-i18n="manual.sec3.indiv.t1" data-i18n-html><strong>跟随全局设置</strong>（默认） — 使用你在上传页面填的开始/结束时间</li>
+                                <li data-i18n="manual.sec3.indiv.t2" data-i18n-html><strong>相对检测时间</strong> — 以系统首次检测到这只老鼠的时刻作为起点计时。比如开始填 <code>0</code>，结束填
+                                    <code>300</code>，意思是"从检测到老鼠那一刻起，分析 300 秒"
+                                </li>
+                                <li data-i18n="manual.sec3.indiv.t3" data-i18n-html><strong>精确时间段</strong> — 填视频的绝对时间。比如开始 <code>60</code>，结束
+                                    <code>360</code>，意思是"只分析视频第 1 分钟到第 6 分钟"
+                                </li>
+                            </ul>
+                        </li>
+                    </ul>
+                </div>
+
+                <p class="mb-0"><strong data-i18n="manual.sec3.btns.title">操作按钮说明：</strong></p>
+                <ul>
+                    <li data-i18n="manual.sec3.btns.li1" data-i18n-html><strong>完成当前ROI</strong> — 将正在画的多边形封闭，添加到列表</li>
+                    <li data-i18n="manual.sec3.btns.li2" data-i18n-html><strong>添加新ROI</strong> — 开始画下一个 ROI</li>
+                    <li data-i18n="manual.sec3.btns.li3" data-i18n-html><strong>撤销一点</strong> — 删掉最后点的那个顶点</li>
+                    <li data-i18n="manual.sec3.btns.li4" data-i18n-html><strong>清除全部</strong> — 删掉所有已画好的 ROI，从头来</li>
+                    <li data-i18n="manual.sec3.btns.li5" data-i18n-html><strong>进入参数调试</strong> — ROI 全部画完后点这个，进入下一步</li>
+                </ul>
+
+                <div class="warning-box">
+                    <i class="fas fa-exclamation-triangle me-2 text-warning"></i>
+                    <span data-i18n="manual.sec3.warning" data-i18n-html>ROI 一定要画得<strong>足够大</strong>，把小鼠挣扎时可能摆动到的范围都包进去。如果 ROI 太小，小鼠身体的一部分会跑到框外面，导致检测丢失。</span>
+                </div>
+            </div>
+
+            <!-- ===== 第4步：参数调试 ===== -->
+            <div class="manual-section" id="sec-debug">
+                <h3><span class="step-number">4</span><span data-i18n="manual.sec4.title">参数调试（步骤 3/3）</span></h3>
+
+                <p data-i18n="manual.sec4.intro" data-i18n-html>这一步可以<strong>实时预览检测效果</strong>。左边显示原始画面，右边显示检测结果（绿色轮廓和圆点就是系统找到的小鼠）。调整参数后，预览会自动刷新。</p>
+
+                <p><strong data-i18n="manual.sec4.goal">你的目标是：调到右边的绿色轮廓刚好覆盖住小鼠身体、没有多余的噪点</strong></p>
+
+                <div class="sub-step">
+                    <h5><i class="fas fa-search me-2"></i><span data-i18n="manual.sec4.method.title">检测方法（灰度阈值）</span></h5>
+                    <table class="table table-dark table-sm param-explain-table">
+                        <thead>
+                            <tr>
+                                <th style="width:140px;" data-i18n="manual.sec4.method.th.opt">选项</th>
+                                <th data-i18n="manual.sec4.method.th.desc">说明</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td class="param-name" data-i18n="manual.sec4.method.td.name">灰度阈值</td>
+                                <td data-i18n="manual.sec4.method.td.desc">本系统仅支持灰度阈值分割，请确保视频质量良好，需要配合下方的"灰度阈值"滑块和"背景类型"选项进行调节。</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="sub-step">
+                    <h5><i class="fas fa-sliders-h me-2"></i><span data-i18n="manual.sec4.thresh.title">灰度阈值 + 背景类型（仅"灰度阈值"方法时有效）</span></h5>
+                    <ul>
+                        <li data-i18n="manual.sec4.thresh.li.bgtype" data-i18n-html><strong>背景类型</strong> — 先确认你的背景是浅色还是深色，选对这个</li>
+                        <li data-i18n="manual.sec4.thresh.li.th" data-i18n-html><strong>灰度阈值</strong>（0–255）— 这个滑块控制"多深/多浅的像素算作小鼠"：
+                            <ul>
+                                <li data-i18n="manual.sec4.thresh.li.th1">拖动滑块，看右侧预览中小鼠的轮廓是否完整</li>
+                                <li data-i18n="manual.sec4.thresh.li.th2">如果检测不到小鼠 → 往让检测更灵敏的方向调（浅色背景时往右拖，深色背景时往左拖）</li>
+                                <li data-i18n="manual.sec4.thresh.li.th3">如果把背景也误检出来了 → 往反方向调</li>
+                                <li data-i18n="manual.sec4.thresh.li.th4" data-i18n-html>调到<strong>恰好把小鼠完整地框出来，同时背景上没有杂散噪点</strong>就对了</li>
+                            </ul>
+                        </li>
+                    </ul>
+                </div>
+
+                <div class="sub-step">
+                    <h5><i class="fas fa-adjust me-2"></i><span data-i18n="manual.sec4.morph.title">形态学参数</span></h5>
+                    <p data-i18n="manual.sec4.morph.p">这些参数用来"清理"检测结果，去掉噪点、把断裂的轮廓连起来：</p>
+                    <table class="table table-dark table-sm param-explain-table">
+                        <thead>
+                            <tr>
+                                <th style="width:140px;" data-i18n="manual.sec4.morph.th.param">参数</th>
+                                <th data-i18n="manual.sec4.morph.th.big">往大调的效果</th>
+                                <th data-i18n="manual.sec4.morph.th.small">往小调的效果</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td class="param-name" data-i18n="calib.debug.erosion.kernel">腐蚀核大小</td>
+                                <td data-i18n="manual.sec4.morph.ek.big">更多小噪点被消除，但小鼠轮廓也会缩小</td>
+                                <td data-i18n="manual.sec4.morph.ek.small">保留更多细节，但噪点也会保留</td>
+                            </tr>
+                            <tr>
+                                <td class="param-name" data-i18n="calib.debug.erosion.iter">腐蚀迭代次数</td>
+                                <td data-i18n="manual.sec4.morph.ei.big">腐蚀效果更强（多执行几轮）</td>
+                                <td data-i18n="manual.sec4.morph.ei.small">设为 0 就不腐蚀</td>
+                            </tr>
+                            <tr>
+                                <td class="param-name" data-i18n="calib.debug.dilation.kernel">膨胀核大小</td>
+                                <td data-i18n="manual.sec4.morph.dk.big">轮廓膨胀得更多，断裂的部分更容易连起来</td>
+                                <td data-i18n="manual.sec4.morph.dk.small">膨胀效果弱，轮廓更贴合实际</td>
+                            </tr>
+                            <tr>
+                                <td class="param-name" data-i18n="calib.debug.dilation.iter">膨胀迭代次数</td>
+                                <td data-i18n="manual.sec4.morph.di.big">膨胀效果更强（多执行几轮）</td>
+                                <td data-i18n="manual.sec4.morph.di.small">设为 0 就不膨胀</td>
+                            </tr>
+                            <tr>
+                                <td class="param-name" data-i18n="calib.debug.min.area">最小面积</td>
+                                <td data-i18n="manual.sec4.morph.ma.big">面积小于此值的检测结果会被丢弃——能过滤噪点，但如果设太大会把小鼠也丢掉</td>
+                                <td data-i18n="manual.sec4.morph.ma.small">更小的目标也会被保留，可能会把噪点也当成检测结果</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="sub-step">
+                    <h5><i class="fas fa-play-circle me-2"></i><span data-i18n="manual.sec4.flow.title">调参流程</span></h5>
+                    <ol>
+                        <li data-i18n="manual.sec4.flow.li1" data-i18n-html>先拖<strong>帧滑块</strong>选几个不同的帧（小鼠不同姿态下），看检测效果是否稳定</li>
+                        <li data-i18n="manual.sec4.flow.li2" data-i18n-html>如果检测不到小鼠 → 先调<strong>灰度阈值</strong>和<strong>背景类型</strong></li>
+                        <li data-i18n="manual.sec4.flow.li3" data-i18n-html>如果轮廓有很多噪点 → 增大<strong>腐蚀</strong>参数 或 增大<strong>最小面积</strong></li>
+                        <li data-i18n="manual.sec4.flow.li4" data-i18n-html>如果小鼠轮廓断裂不完整 → 增大<strong>膨胀</strong>参数</li>
+                        <li data-i18n="manual.sec4.flow.li5">在不同帧上反复检查，直到大部分帧都能干净地检测到小鼠</li>
+                    </ol>
+                </div>
+
+                <div class="sub-step">
+                    <h5><i class="fas fa-flag-checkered me-2"></i><span data-i18n="manual.sec4.other.title">其他选项</span></h5>
+                    <ul>
+                        <li data-i18n="manual.sec4.other.li1" data-i18n-html><strong>生成结果视频</strong> — 默认勾选。会输出一个带有追踪标记的视频文件。如果你不需要看视频只要数据，取消勾选可以加快处理速度</li>
+                    </ul>
+                </div>
+
+                <p data-i18n="manual.sec4.submit" data-i18n-html>一切就绪后，点击右下角的<strong>"开始分析"</strong>按钮，系统开始处理。</p>
+            </div>
+
+            <!-- ===== 第5步：监控与结果 ===== -->
+            <div class="manual-section" id="sec-monitor">
+                <h3><span class="step-number">5</span><span data-i18n="manual.sec5.title">监控分析进度 & 查看结果</span></h3>
+
+                <p data-i18n="manual.sec5.intro">点击"开始分析"后会自动跳转到监控页面。</p>
+
+                <div class="sub-step">
+                    <h5><i class="fas fa-chart-line me-2"></i><span data-i18n="manual.sec5.monitor.title">监控页面内容</span></h5>
+                    <ul>
+                        <li data-i18n="manual.sec5.monitor.li1" data-i18n-html><strong>处理状态</strong> — 当前状态（分析中 / 已完成 / 出错）和进度百分比</li>
+                        <li data-i18n="manual.sec5.monitor.li2" data-i18n-html><strong>性能指标</strong> — 已处理多少帧、运行了多长时间、处理速度（fps）</li>
+                        <li data-i18n="manual.sec5.monitor.li3" data-i18n-html><strong>实时数据</strong> — 每个 ROI 区域的小鼠当前是"挣扎"还是"静止"，以及光流数值</li>
+                        <li data-i18n="manual.sec5.monitor.li4" data-i18n-html><strong>系统日志</strong> — 仿终端界面，显示处理过程中的详细信息</li>
+                    </ul>
+                </div>
+
+                <div class="sub-step">
+                    <h5><i class="fas fa-download me-2"></i><span data-i18n="manual.sec5.done.title">分析完成后</span></h5>
+                    <p data-i18n="manual.sec5.done.p">分析完成后，下载区域会自动出现，有两种方式获取结果：</p>
+                    <ol>
+                        <li data-i18n="manual.sec5.done.li1" data-i18n-html><strong>打开结果文件夹</strong>（推荐）— 点击这个按钮，系统会用文件管理器直接打开结果所在的文件夹，你可以直接查看、复制文件</li>
+                        <li data-i18n="manual.sec5.done.li2" data-i18n-html><strong>网页下载</strong> — 点击"全部下载 (ZIP)"打包下载所有文件，或者通过下拉菜单单独下载某个文件</li>
+                    </ol>
+                </div>
+
+                <div class="sub-step">
+                    <h5><i class="fas fa-file-alt me-2"></i><span data-i18n="manual.sec5.files.title">输出文件说明</span></h5>
+                    <table class="table table-dark table-sm param-explain-table">
+                        <thead>
+                            <tr>
+                                <th style="width:200px;" data-i18n="manual.sec5.files.th.file">文件</th>
+                                <th data-i18n="manual.sec5.files.th.desc">内容</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td class="param-name">*_analyzed.mp4</td>
+                                <td data-i18n="manual.sec5.files.mp4">带追踪标记的视频。可以看到每只小鼠的检测轮廓、质心位置和当前行为状态标注</td>
+                            </tr>
+                            <tr>
+                                <td class="param-name">*_logs.csv</td>
+                                <td data-i18n="manual.sec5.files.logs">逐帧数据日志。每一行是一帧的数据，包括帧号、时间、ROI 编号、是否挣扎、光流值等</td>
+                            </tr>
+                            <tr>
+                                <td class="param-name">*_immobility.csv</td>
+                                <td data-i18n="manual.sec5.files.imm">统计汇总表。每只小鼠一行，包括总时长、不动时间、不动比例、挣扎时间、挣扎比例、首次不动潜伏期等</td>
+                            </tr>
+                            <tr>
+                                <td class="param-name">*_report.txt</td>
+                                <td data-i18n="manual.sec5.files.txt">纯文本报告，内容和上面的 CSV 一样，方便直接阅读</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="tip-box">
+                    <i class="fas fa-info-circle me-2 text-info"></i>
+                    <span data-i18n="manual.sec5.tip" data-i18n-html>如果分析中途发现参数不对，可以点<strong>"停止分析"</strong>按钮终止，然后回到首页重新上传操作。</span>
+                </div>
+            </div>
+
+            <!-- ===== 参数速查表 ===== -->
+            <div class="manual-section" id="sec-params">
+                <h3><i class="fas fa-sliders-h me-2"></i><span data-i18n="manual.params.title">参数速查表</span></h3>
+
+                <table class="table table-dark table-hover param-explain-table">
+                    <thead>
+                        <tr>
+                            <th style="width:140px;" data-i18n="manual.params.th.param">参数</th>
+                            <th style="width:90px;" data-i18n="manual.params.th.range">范围</th>
+                            <th data-i18n="manual.params.th.tip">拿不准的时候怎么做</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td class="param-name" data-i18n="calib.debug.threshold.label">灰度阈值</td>
+                            <td>0 – 255</td>
+                            <td data-i18n="manual.params.gray.tip">一边拖滑块一边看右侧预览，调到小鼠刚好被完整检出、背景干净为止</td>
+                        </tr>
+                        <tr>
+                            <td class="param-name" data-i18n="calib.debug.bgtype.label">背景类型</td>
+                            <td data-i18n="manual.params.bgtype.range">浅色 / 深色</td>
+                            <td data-i18n="manual.params.bgtype.tip">肉眼看画面背景是什么颜色就选什么</td>
+                        </tr>
+                        <tr>
+                            <td class="param-name" data-i18n="calib.debug.erosion.kernel">腐蚀核大小</td>
+                            <td>1 – 15</td>
+                            <td data-i18n="manual.params.ek.tip">背景有很多小白点噪点 → 调大；小鼠轮廓变残缺了 → 调小</td>
+                        </tr>
+                        <tr>
+                            <td class="param-name" data-i18n="calib.debug.erosion.iter">腐蚀迭代</td>
+                            <td>0 – 10</td>
+                            <td data-i18n="manual.params.ei.tip">噪点太多去不掉 → 增加次数；小鼠要消失了 → 减少次数</td>
+                        </tr>
+                        <tr>
+                            <td class="param-name" data-i18n="calib.debug.dilation.kernel">膨胀核大小</td>
+                            <td>1 – 15</td>
+                            <td data-i18n="manual.params.dk.tip">小鼠轮廓断裂有缺口 → 调大；多只鼠的检测框连到一起了 → 调小</td>
+                        </tr>
+                        <tr>
+                            <td class="param-name" data-i18n="calib.debug.dilation.iter">膨胀迭代</td>
+                            <td>0 – 10</td>
+                            <td data-i18n="manual.params.di.tip">缺口还是补不上 → 增加次数；框膨胀太大了 → 减少次数</td>
+                        </tr>
+                        <tr>
+                            <td class="param-name" data-i18n="calib.debug.min.area">最小面积</td>
+                            <td>10 – 1000</td>
+                            <td data-i18n="manual.params.ma.tip">有零散噪点被当成老鼠 → 调大；真正的老鼠被过滤掉了 → 调小</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <div class="tip-box">
+                    <i class="fas fa-info-circle me-2 text-info"></i>
+                    <span data-i18n="manual.params.tip" data-i18n-html><strong>核心技巧：</strong>每改一个参数就看一眼右侧预览。在多个不同帧上检查效果（拖帧滑块），确保不只是某一帧好用，而是大部分帧都行。</span>
+                </div>
+            </div>
+
+            <!-- 免责声明 & 版权信息 -->
+            <div class="alert alert-warning border-warning shadow-sm mb-4">
+                <h5 class="alert-heading"><i class="fas fa-exclamation-triangle me-2"></i><span data-i18n="manual.disclaimer.title">免责声明</span></h5>
+                <p class="mb-2" data-i18n="manual.disclaimer.p" data-i18n-html>
+                    本系统提供的分析结果仅供参考。由于光照条件、视频质量、动物个体差异等因素的影响，结果可能存在误差。
+                    <strong>请研究人员务必对结果进行人工核查。</strong>系统作者不对因使用本系统而导致的数据偏差承担责任。
+                </p>
+                <hr>
+                <p class="mb-0 small text-muted">
+                    <strong data-i18n="manual.disclaimer.academic">仅供学术交流，禁止商业用途</strong><br>
+                    <span data-i18n="manual.disclaimer.author">作者：付家丞 (Jiacheng Fu)</span><br>
+                    <span data-i18n="manual.disclaimer.email">Email: 2583348593@qq.com</span><br>
+                    <span data-i18n="manual.disclaimer.org">中国科学院生物物理研究所 (IBP, CAS)</span>
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // 滚动时高亮当前章节对应的导航
+    document.addEventListener('DOMContentLoaded', function () {
+        const sections = document.querySelectorAll('.manual-section');
+        const navLinks = document.querySelectorAll('.nav-sidebar .list-group-item');
+
+        function updateActiveNav() {
+            let current = '';
+            sections.forEach(section => {
+                const rect = section.getBoundingClientRect();
+                if (rect.top <= 120) current = section.id;
+            });
+            navLinks.forEach(link => {
+                link.classList.remove('active');
+                if (link.getAttribute('href') === '#' + current) {
+                    link.classList.add('active');
+                }
+            });
+        }
+
+        window.addEventListener('scroll', updateActiveNav);
+        updateActiveNav();
+
+        // 平滑滚动
+        navLinks.forEach(link => {
+            link.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+            });
+        });
+    });
+</script>
+{% endblock %}

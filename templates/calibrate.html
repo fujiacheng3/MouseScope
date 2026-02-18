@@ -1,0 +1,986 @@
+{% extends "base.html" %}
+{% block title %}标定配置 - MouseScope{% endblock %}
+
+{% block extra_css %}
+<style>
+    .calibration-container {
+        background: rgba(255, 255, 255, 0.08);
+        border: var(--border-glow);
+        border-radius: 15px;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        overflow: hidden;
+        margin-bottom: 2rem;
+    }
+
+    .calibration-steps {
+        display: flex;
+        justify-content: space-around;
+        padding: 1.5rem;
+        background: rgba(255, 255, 255, 0.03);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .calibration-step {
+        text-align: center;
+        padding: 0.75rem 1.5rem;
+        border-radius: 8px;
+        transition: all 0.3s;
+        color: var(--text-secondary);
+        cursor: pointer;
+    }
+
+    .calibration-step.active {
+        background: var(--primary-color);
+        color: white;
+        box-shadow: 0 0 20px rgba(0, 242, 254, 0.3);
+    }
+
+    .calibration-step.completed {
+        background: #28a745;
+        color: white;
+    }
+
+    .calibration-content {
+        padding: 2rem;
+        color: var(--text-primary);
+    }
+
+    .canvas-container {
+        position: relative;
+        display: inline-block;
+        border: 2px solid rgba(0, 242, 254, 0.3);
+        border-radius: 12px;
+        overflow: hidden;
+        background: #000;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        margin: 1rem 0;
+    }
+
+    .canvas-container canvas {
+        display: block;
+        cursor: crosshair;
+        max-width: 100%;
+        height: auto;
+    }
+
+    .calibration-instruction {
+        background: rgba(0, 242, 254, 0.1);
+        border-left: 4px solid var(--accent-color);
+        padding: 1.25rem;
+        margin-bottom: 1.5rem;
+        border-radius: 8px;
+    }
+
+    .calibration-info-box {
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        padding: 1.25rem;
+        border-radius: 12px;
+        margin-top: 1.5rem;
+    }
+
+    .calibration-info-item {
+        display: flex;
+        justify-content: space-between;
+        padding: 8px 0;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        color: var(--text-secondary);
+    }
+
+    .calibration-info-item:last-child {
+        border-bottom: none;
+    }
+
+    .calibration-info-item span:last-child {
+        color: var(--text-primary);
+        font-weight: 500;
+    }
+
+    .roi-item {
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        padding: 0.75rem;
+        margin-bottom: 0.5rem;
+        border-radius: 8px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .param-group {
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+        border-radius: 12px;
+    }
+
+    .param-group h5 {
+        color: var(--accent-color);
+        margin-bottom: 1rem;
+        font-weight: 600;
+    }
+
+    .step-content {
+        display: none;
+    }
+
+    .step-content.active {
+        display: block;
+    }
+
+    .loading-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.8);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 9999;
+    }
+
+    .spinner {
+        width: 60px;
+        height: 60px;
+        border: 4px solid rgba(0, 242, 254, 0.3);
+        border-top: 4px solid var(--accent-color);
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+        0% {
+            transform: rotate(0deg);
+        }
+
+        100% {
+            transform: rotate(360deg);
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div id="loading" class="loading-overlay" style="display: none;">
+    <div class="spinner"></div>
+</div>
+
+<div class="container-fluid">
+    <!-- 步骤导航 -->
+    <div class="calibration-steps mb-4">
+        <div class="calibration-step active" id="stepNav1" onclick="goToStep(1)">
+            <i class="fas fa-ruler me-1"></i> <span data-i18n="calib.step1">1. 体长标定</span>
+        </div>
+        <div class="calibration-step" id="stepNav2" onclick="goToStep(2)">
+            <i class="fas fa-crosshairs me-1"></i> <span data-i18n="calib.step2">2. ROI选择</span>
+        </div>
+        <div class="calibration-step" id="stepNav3" onclick="goToStep(3)">
+            <i class="fas fa-sliders-h me-1"></i> <span data-i18n="calib.step3">3. 参数调试</span>
+        </div>
+    </div>
+
+    <!-- 步骤1：体长标定 -->
+    <div id="calibration-step" class="step-content active">
+        <div class="calibration-instruction">
+            <p data-i18n="calib.instr.p1">1. 在画面中选择一只老鼠，点击头部然后点击尾部画一条线</p>
+            <p data-i18n="calib.instr.p2">2. 系统会根据标准体长(60mm)计算像素-毫米比例</p>
+            <p class="text-info mt-2"><i class="fas fa-lightbulb me-1"></i><span data-i18n="calib.instr.p3">如果没有老鼠可以标定，可以直接跳过进入下一步(使用默认比例)</span></p>
+        </div>
+
+        <div class="row align-items-center mb-4">
+            <div class="col-auto"><label class="form-label text-light" data-i18n="calib.frame.label">选择帧:</label></div>
+            <div class="col"><input type="range" class="form-range" id="frameSlider" min="0" max="1000" value="0"
+                    oninput="onFrameSliderChange(this.value)"></div>
+            <div class="col-auto"><span id="frameLabel" class="text-light">帧 0 / 1000</span></div>
+        </div>
+
+        <div class="text-center mb-4">
+            <div class="canvas-container">
+                <canvas id="calibCanvas"
+                    style="max-width: 800px; min-height: 400px; border: 2px solid rgba(0,242,254,0.3); background: #000;"></canvas>
+            </div>
+        </div>
+
+        <div class="d-flex gap-3 justify-content-center mt-3">
+            <button class="btn btn-danger" onclick="clearCalibration()"><i class="fas fa-eraser me-2"></i><span data-i18n="calib.btn.clear">清除重画</span></button>
+            <button class="btn btn-primary" onclick="confirmCalibration()" id="confirmCalibBtn" disabled><i
+                    class="fas fa-check me-2"></i><span data-i18n="calib.btn.confirm">确认标定</span></button>
+            <button class="btn btn-secondary" onclick="skipCalibration()"><i
+                    class="fas fa-forward me-2"></i><span data-i18n="calib.btn.skip">跳过(使用默认)</span></button>
+        </div>
+
+        <div class="calibration-info-box" id="calibInfo" style="display:none;">
+            <h4><i class="fas fa-check-circle me-2 text-success"></i><span data-i18n="calib.done.title">标定完成</span></h4>
+            <div class="calibration-info-item"><span data-i18n="calib.done.pixeldist">体长像素距离:</span><span id="pixelDist">-</span></div>
+            <div class="calibration-info-item"><span data-i18n="calib.done.ratio">标定比例:</span><span id="pixelToMm">-</span></div>
+        </div>
+    </div>
+
+    <!-- 步骤2：ROI选择 -->
+    <div id="roi-step" class="step-content" style="display:none;">
+        <div class="calibration-instruction">
+            {% if is_batch %}
+            <p data-i18n="calib.roi.batch.p1">1. 批量模式：所有视频将共用同一套 ROI 配置</p>
+            <p data-i18n="calib.roi.batch.p2">2. 在画面中点击多个点绘制多边形 ROI 区域</p>
+            <p data-i18n="calib.roi.batch.p3">3. 完成一个 ROI 后点击“完成当前ROI”</p>
+            <p data-i18n="calib.roi.batch.p4">4. 可以添加多个 ROI（每个对应一只老鼠）</p>
+            {% else %}
+            <p data-i18n="calib.roi.p1">1. 在画面中点击多个点绘制多边形 ROI 区域</p>
+            <p data-i18n="calib.roi.p2">2. 每个 ROI 应该包含一只老鼠（悬挂范围）</p>
+            <p data-i18n="calib.roi.p3">3. 完成一个 ROI 后点击“完成当前ROI”</p>
+            <p data-i18n="calib.roi.p4">4. 可以添加多个 ROI（每个对应一只老鼠）</p>
+            <p data-i18n="calib.roi.p5">5. 全部画完后点击“进入参数调试”</p>
+            {% endif %}
+        </div>
+
+        {% if is_batch %}
+        <div class="row align-items-center mb-4">
+            <div class="col-auto"><label class="form-label text-light" data-i18n="calib.roi.preview.label">预览视频:</label></div>
+            <div class="col">
+                <select class="form-select" id="videoSelector" onchange="onVideoChange(this.value)">
+                    {% for video in video_list %}
+                    <option value="{{ video.index }}">{{ loop.index }}. {{ video.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+        {% endif %}
+
+        <div class="row align-items-center mb-4">
+            <div class="col-auto"><label class="form-label text-light" data-i18n="calib.frame.label">选择帧:</label></div>
+            <div class="col"><input type="range" class="form-range" id="frameSliderROI" min="0" max="1000" value="0"
+                    oninput="onROIFrameSliderChange(this.value)"></div>
+            <div class="col-auto"><span id="frameLabelROI" class="text-light">帧 0 / 1000</span></div>
+        </div>
+
+        <div class="text-center mb-4">
+            <div class="canvas-container">
+                <canvas id="roiCanvas"
+                    style="max-width: 800px; min-height: 400px; border: 2px solid rgba(0,242,254,0.3); background: #000;"></canvas>
+            </div>
+        </div>
+
+        <div class="d-flex gap-3 justify-content-center mt-3 flex-wrap">
+            <button class="btn btn-success" onclick="finishCurrentROI()" id="finishROIBtn" disabled><i
+                    class="fas fa-check me-2"></i><span data-i18n="calib.roi.btn.finish">完成当前ROI</span></button>
+            <button class="btn btn-info" onclick="addNewROI()"><i class="fas fa-plus me-2"></i><span data-i18n="calib.roi.btn.add">添加新ROI</span></button>
+            <button class="btn btn-warning" onclick="clearLastPoint()"><i class="fas fa-undo me-2"></i><span data-i18n="calib.roi.btn.undo">撤销一点</span></button>
+            <button class="btn btn-danger" onclick="clearAllROIs()"><i class="fas fa-trash me-2"></i><span data-i18n="calib.roi.btn.clear">清除全部</span></button>
+            <button class="btn btn-primary" onclick="goToDebugStep()" id="nextToDebugBtn" disabled><i
+                    class="fas fa-arrow-right me-2"></i><span data-i18n="calib.roi.btn.next">进入参数调试</span></button>
+        </div>
+
+        <div class="calibration-info-box">
+            <h4><i class="fas fa-list me-2"></i><span data-i18n="calib.roi.list.title">ROI 列表</span> (<span id="roiCount">0</span>)</h4>
+            <div class="roi-list" id="roiList">
+                <div class="text-center text-muted py-3"><i class="fas fa-info-circle me-2"></i>尚未绘制 ROI</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 步骤3：参数调试 -->
+    <div id="debug-step" class="step-content" style="display:none;">
+        <div class="calibration-instruction">
+            <p data-i18n="calib.debug.instr">调整检测参数，实时预览效果。确认参数后点击“开始分析”</p>
+        </div>
+
+        <div class="row align-items-center mb-4">
+            <div class="col-auto"><label class="form-label text-light" data-i18n="calib.frame.label">选择帧:</label></div>
+            <div class="col"><input type="range" class="form-range" id="frameSliderDebug" min="0" max="1000" value="0"
+                    oninput="onDebugFrameSliderChange(this.value)"></div>
+            <div class="col-auto"><span id="frameLabelDebug" class="text-light">帧 0 / 1000</span></div>
+        </div>
+
+        <div class="row g-3 mb-4">
+            <div class="col-md-6">
+                <div class="calibration-info-box text-center">
+                    <h5 class="mb-3"><i class="fas fa-video me-2"></i><span data-i18n="calib.debug.orig">原始帧</span></h5>
+                    <canvas id="debugOriginal"
+                        style="width: 100%; height: 300px; border: 2px solid rgba(0,242,254,0.3); border-radius: 8px; background: #000;"></canvas>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="calibration-info-box text-center">
+                    <h5 class="mb-3"><i class="fas fa-search me-2"></i><span data-i18n="calib.debug.result">检测结果</span></h5>
+                    <canvas id="debugResult"
+                        style="width: 100%; height: 300px; border: 2px solid rgba(0,242,254,0.3); border-radius: 8px; background: #000;"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="row" id="traditionalParamsContainer">
+            <div class="col-md-6">
+                <div class="param-group">
+                    <h5><i class="fas fa-search me-2"></i><span data-i18n="calib.debug.method.title">检测方法</span></h5>
+                    <div class="mb-3">
+                        <label class="form-label" data-i18n="calib.debug.bg.method.label">背景减除方法</label>
+                        <select class="form-select" id="bgMethod"
+                            onchange="toggleDetectionParams(); updateDebugPreview()">
+                            <option value="threshold" selected data-i18n="calib.debug.bg.threshold">灰度阀值（推荐）</option>
+                        </select>
+                    </div>
+                    <div id="thresholdParams">
+                        <div class="mb-3">
+                            <label class="form-label" data-i18n="calib.debug.threshold.label">灰度阀值</label>
+                            <input type="range" class="form-range" id="grayThreshold" min="0" max="255" value="127"
+                                oninput="updateDebugPreview()">
+                            <div class="d-flex justify-content-between text-small"><span>0</span><span
+                                    id="grayThresholdVal">127</span><span>255</span></div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label" data-i18n="calib.debug.bgtype.label">背景类型</label>
+                            <select class="form-select" id="bgType" onchange="updateDebugPreview()">
+                                <option value="light" data-i18n="calib.debug.bgtype.light">浅色背景</option>
+                                <option value="dark" data-i18n="calib.debug.bgtype.dark">深色背景</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="param-group">
+                    <h5><i class="fas fa-adjust me-2"></i><span data-i18n="calib.debug.morph.title">形态学参数</span></h5>
+                    <div class="mb-3">
+                        <label class="form-label" data-i18n="calib.debug.erosion.kernel">腐蓀核大小</label>
+                        <input type="range" class="form-range" id="erosionKernel" min="1" max="15" value="3"
+                            oninput="updateDebugPreview()">
+                        <div class="d-flex justify-content-between text-small"><span>1</span><span
+                                id="erosionKernelVal">3</span><span>15</span></div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label" data-i18n="calib.debug.erosion.iter">腐蓀迭代次数</label>
+                        <input type="range" class="form-range" id="erosionIter" min="0" max="10" value="2"
+                            oninput="updateDebugPreview()">
+                        <div class="d-flex justify-content-between text-small"><span>0</span><span
+                                id="erosionIterVal">2</span><span>10</span></div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label" data-i18n="calib.debug.dilation.kernel">膨胀核大小</label>
+                        <input type="range" class="form-range" id="dilationKernel" min="1" max="15" value="5"
+                            oninput="updateDebugPreview()">
+                        <div class="d-flex justify-content-between text-small"><span>1</span><span
+                                id="dilationKernelVal">5</span><span>15</span></div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label" data-i18n="calib.debug.dilation.iter">膨胀迭代次数</label>
+                        <input type="range" class="form-range" id="dilationIter" min="0" max="10" value="3"
+                            oninput="updateDebugPreview()">
+                        <div class="d-flex justify-content-between text-small"><span>0</span><span
+                                id="dilationIterVal">3</span><span>10</span></div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label" data-i18n="calib.debug.min.area">最小面积</label>
+                        <input type="range" class="form-range" id="minArea" min="10" max="1000" value="100"
+                            oninput="updateDebugPreview()">
+                        <div class="d-flex justify-content-between text-small"><span>10</span><span
+                                id="minAreaVal">100</span><span>1000</span></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="d-flex justify-content-between gap-3 mt-4">
+            <button class="btn btn-secondary" onclick="previousStep()"><i
+                    class="fas fa-arrow-left me-2"></i><span data-i18n="calib.debug.btn.prev">上一步</span></button>
+            <button class="btn btn-info" onclick="updateDebugPreview()"><i class="fas fa-sync me-2"></i><span data-i18n="calib.debug.btn.refresh">刷新预览</span></button>
+            <div class="d-flex gap-2 align-items-center">
+                <div class="form-check form-switch me-3">
+                    <input class="form-check-input" type="checkbox" id="generateVideo" checked>
+                    <label class="form-check-label text-light" for="generateVideo">
+                        <span data-i18n="calib.debug.gen.video">生成结果视频</span> <span class="text-muted small" data-i18n="calib.debug.gen.video.hint">(取消可加速约20%)</span>
+                    </label>
+                </div>
+                <button class="btn btn-success btn-lg" onclick="startAnalysis()"><i
+                        class="fas fa-play me-2"></i><span data-i18n="calib.debug.btn.start">开始分析</span></button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    const sessionId = '{{ session_id }}';
+    const videoInfo = {{ video_info | tojson }};
+    const isBatch = {{ is_batch | tojson }};
+    {% if video_list %}
+    const videoList = {{ video_list | tojson }};
+    {% else %}
+    const videoList = [];
+    {% endif %}
+
+    let firstFrame = null;
+    let currentFrameIdx = 0;
+    let currentVideoIdx = 0;
+    let calibPoints = [];
+    let pixelToMm = null;
+    let rois = [];
+    let currentROI = [];
+    let isDrawingROI = false;
+    let debugFrame = null;
+
+    let _debounceTimers = {};
+    function debounce(key, fn, delay) { clearTimeout(_debounceTimers[key]); _debounceTimers[key] = setTimeout(fn, delay); }
+
+    window.onload = function () {
+        const totalFrames = videoInfo.total_frames - 1;
+        const slider = document.getElementById('frameSlider');
+        if (slider) slider.max = totalFrames;
+        const label = document.getElementById('frameLabel');
+        if (label) label.textContent = `帧 0 / ${totalFrames}`;
+        loadFrame(0);
+        updateStepStatus(1);
+    };
+
+    function loadFrame(frameIdx, callback) {
+        fetch(`/api/get_first_frame/${sessionId}?frame=${frameIdx}&video=${currentVideoIdx}`)
+            .then(r => r.json())
+            .then(data => {
+                if (data.error) { showSessionError(data.error); return; }
+                const img = new Image();
+                img.onload = function () {
+                    firstFrame = img;
+                    drawCalibCanvas();
+                    if (callback) callback();
+                };
+                img.src = 'data:image/jpeg;base64,' + data.image;
+            })
+            .catch(e => console.error('加载帧失败:', e));
+    }
+
+    function showSessionError(msg) {
+        alert('会话错误: ' + msg + '\n请返回首页重新上传');
+        window.location.href = '/';
+    }
+
+    // === 步骤1: 标定 ===
+    function drawCalibCanvas() {
+        const canvas = document.getElementById('calibCanvas');
+        if (!canvas || !firstFrame) return;
+        const ctx = canvas.getContext('2d');
+        canvas.width = firstFrame.width;
+        canvas.height = firstFrame.height;
+        ctx.drawImage(firstFrame, 0, 0);
+        if (calibPoints.length >= 1) {
+            ctx.beginPath(); ctx.arc(calibPoints[0].x, calibPoints[0].y, 6, 0, Math.PI * 2);
+            ctx.fillStyle = '#00ff00'; ctx.fill();
+        }
+        if (calibPoints.length >= 2) {
+            ctx.beginPath(); ctx.arc(calibPoints[1].x, calibPoints[1].y, 6, 0, Math.PI * 2);
+            ctx.fillStyle = '#ff0000'; ctx.fill();
+            ctx.beginPath(); ctx.moveTo(calibPoints[0].x, calibPoints[0].y);
+            ctx.lineTo(calibPoints[1].x, calibPoints[1].y);
+            ctx.strokeStyle = '#ffff00'; ctx.lineWidth = 2; ctx.stroke();
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        const calibCanvas = document.getElementById('calibCanvas');
+        if (calibCanvas) {
+            calibCanvas.addEventListener('click', function (e) {
+                const rect = calibCanvas.getBoundingClientRect();
+                const scaleX = calibCanvas.width / rect.width;
+                const scaleY = calibCanvas.height / rect.height;
+                const x = (e.clientX - rect.left) * scaleX;
+                const y = (e.clientY - rect.top) * scaleY;
+                if (calibPoints.length < 2) {
+                    calibPoints.push({ x: Math.round(x), y: Math.round(y) });
+                    drawCalibCanvas();
+                    if (calibPoints.length === 2) document.getElementById('confirmCalibBtn').disabled = false;
+                }
+            });
+        }
+
+        const roiCanvas = document.getElementById('roiCanvas');
+        if (roiCanvas) {
+            roiCanvas.addEventListener('click', function (e) {
+                if (!isDrawingROI) return;
+                const rect = roiCanvas.getBoundingClientRect();
+                const scaleX = roiCanvas.width / rect.width;
+                const scaleY = roiCanvas.height / rect.height;
+                const x = Math.round((e.clientX - rect.left) * scaleX);
+                const y = Math.round((e.clientY - rect.top) * scaleY);
+                currentROI.push({ x, y });
+                drawROICanvas();
+                if (currentROI.length >= 3) document.getElementById('finishROIBtn').disabled = false;
+            });
+
+            roiCanvas.addEventListener('dblclick', function () {
+                if (currentROI.length >= 3) {
+                    finishCurrentROI();
+                }
+            });
+
+            roiCanvas.addEventListener('contextmenu', function (e) {
+                e.preventDefault();
+                clearLastPoint();
+                return false;
+            });
+        }
+    });
+
+    function clearCalibration() {
+        calibPoints = [];
+        pixelToMm = null;
+        document.getElementById('confirmCalibBtn').disabled = true;
+        document.getElementById('calibInfo').style.display = 'none';
+        drawCalibCanvas();
+    }
+
+    function confirmCalibration() {
+        if (calibPoints.length < 2) return;
+        const dx = calibPoints[1].x - calibPoints[0].x;
+        const dy = calibPoints[1].y - calibPoints[0].y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        pixelToMm = 60.0 / dist; // 标准体长 60mm
+        document.getElementById('pixelDist').textContent = dist.toFixed(1) + ' px';
+        document.getElementById('pixelToMm').textContent = pixelToMm.toFixed(4) + ' mm/px';
+        document.getElementById('calibInfo').style.display = 'block';
+        updateStepStatus(1, true);
+        goToStep(2);
+    }
+
+    function skipCalibration() {
+        pixelToMm = 1.0;
+        updateStepStatus(1, true);
+        goToStep(2);
+    }
+
+    function onFrameSliderChange(val) {
+        document.getElementById('frameLabel').textContent = `帧 ${val} / ${videoInfo.total_frames - 1}`;
+        debounce('frameSlider', () => loadFrame(parseInt(val)), 200);
+    }
+
+    // === 步骤2: ROI ===
+    function drawROICanvas() {
+        const canvas = document.getElementById('roiCanvas');
+        if (!canvas || !firstFrame) return;
+        const ctx = canvas.getContext('2d');
+        canvas.width = firstFrame.width;
+        canvas.height = firstFrame.height;
+        ctx.drawImage(firstFrame, 0, 0);
+
+        // 绘制已完成的ROI — 半透明填充
+        rois.forEach((roi, i) => {
+            const points = roi.points || roi;
+            const name = roi.name || `ROI ${i + 1}`;
+
+            ctx.strokeStyle = `hsl(${i * 60}, 70%, 50%)`;
+            ctx.fillStyle = `hsla(${i * 60}, 70%, 50%, 0.2)`;
+            ctx.lineWidth = 2;
+
+            ctx.beginPath();
+            ctx.moveTo(points[0].x, points[0].y);
+            points.forEach(p => ctx.lineTo(p.x, p.y));
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
+
+            // 标注ROI编号
+            const centerX = points.reduce((sum, p) => sum + p.x, 0) / points.length;
+            const centerY = points.reduce((sum, p) => sum + p.y, 0) / points.length;
+            ctx.fillStyle = 'white';
+            ctx.font = '20px Arial';
+            ctx.fillText(name, centerX - 20, centerY);
+        });
+
+        // 绘制当前正在绘制的ROI
+        if (currentROI.length > 0) {
+            ctx.strokeStyle = 'yellow';
+            ctx.fillStyle = 'rgba(255, 255, 0, 0.3)';
+            ctx.lineWidth = 2;
+
+            ctx.beginPath();
+            ctx.moveTo(currentROI[0].x, currentROI[0].y);
+            currentROI.forEach((p, idx) => {
+                ctx.lineTo(p.x, p.y);
+                // 画顶点
+                ctx.fillStyle = 'red';
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, 4, 0, 2 * Math.PI);
+                ctx.fill();
+            });
+
+            if (currentROI.length >= 3) {
+                ctx.closePath();
+                ctx.fillStyle = 'rgba(255, 255, 0, 0.3)';
+                ctx.fill();
+            }
+            ctx.stroke();
+        }
+    }
+
+    function finishCurrentROI() {
+        if (currentROI.length < 3) return;
+        const newROI = {
+            points: [...currentROI],
+            name: `ROI ${rois.length + 1}`,
+            time_config: {
+                mode: 'global',
+                start: 0,
+                end: 0
+            }
+        };
+        rois.push(newROI);
+        currentROI = [];
+        isDrawingROI = false;
+        document.getElementById('finishROIBtn').disabled = true;
+        updateROIList();
+        drawROICanvas();
+        if (rois.length > 0) document.getElementById('nextToDebugBtn').disabled = false;
+    }
+
+    function addNewROI() {
+        if (currentROI.length >= 3) finishCurrentROI();
+        currentROI = [];
+        isDrawingROI = true;
+        document.getElementById('finishROIBtn').disabled = true;
+    }
+
+    function clearLastPoint() {
+        if (currentROI.length > 0) {
+            currentROI.pop();
+            if (currentROI.length < 3) document.getElementById('finishROIBtn').disabled = true;
+            drawROICanvas();
+        }
+    }
+
+    function clearAllROIs() {
+        rois = []; currentROI = [];
+        document.getElementById('finishROIBtn').disabled = true;
+        document.getElementById('nextToDebugBtn').disabled = true;
+        updateROIList();
+        drawROICanvas();
+    }
+
+    function deleteROI(idx) {
+        rois.splice(idx, 1);
+        updateROIList();
+        drawROICanvas();
+        if (rois.length === 0) document.getElementById('nextToDebugBtn').disabled = true;
+    }
+
+    function updateROIList() {
+        const list = document.getElementById('roiList');
+        const count = document.getElementById('roiCount');
+        count.textContent = rois.length;
+
+        if (rois.length === 0) {
+            list.innerHTML = '<div class="text-center text-muted py-3"><i class="fas fa-info-circle me-2"></i>尚未绘制 ROI</div>';
+            return;
+        }
+
+        const roiListTitle = (getLang && getLang()==='en') ? 'Added ROIs:' : '已添加的 ROI:';
+        list.innerHTML = `<h4>${roiListTitle}</h4>`;
+
+        rois.forEach((roi, i) => {
+            const item = document.createElement('div');
+            item.className = 'roi-item';
+            item.style.flexDirection = 'column';
+            item.style.alignItems = 'stretch';
+
+            const points = roi.points || roi;
+            const name = roi.name || `ROI ${i + 1}`;
+            const timeConfig = roi.time_config || { mode: 'global', start: 0, end: 0 };
+
+            // 确保roi对象有这些属性
+            if (!roi.points) { roi.points = points; roi.name = name; roi.time_config = timeConfig; }
+
+            let timeConfigHtml = '';
+            if (timeConfig.mode === 'global') {
+                timeConfigHtml = `<span class="text-muted small">${(getLang && getLang()==='en') ? 'Follow Global Settings' : '跟随全局设置'}</span>`;
+            } else if (timeConfig.mode === 'relative') {
+                timeConfigHtml = `<span class="text-info small">${(getLang && getLang()==='en') ? 'Relative Time' : '相对检测时间'}: ${timeConfig.start}s - ${timeConfig.end}s</span>`;
+            } else if (timeConfig.mode === 'precise') {
+                timeConfigHtml = `<span class="text-warning small">${(getLang && getLang()==='en') ? 'Precise Time' : '精确时间段'}: ${timeConfig.start}s - ${timeConfig.end}s</span>`;
+            }
+
+            item.innerHTML = `
+                <div class="d-flex justify-content-between align-items-center w-100 mb-2">
+                    <span class="fw-bold">${name} (${points.length} ${(getLang && getLang()==='en') ? 'pts' : '个顶点'})</span>
+                    <div>
+                        <button class="btn btn-sm btn-outline-info me-2" onclick="toggleROISettings(${i})"><i class="fas fa-cog"></i></button>
+                        <button class="btn btn-danger btn-sm" onclick="deleteROI(${i})">${(getLang && getLang()==='en') ? 'Delete' : '删除'}</button>
+                    </div>
+                </div>
+                <div class="d-flex justify-content-between align-items-center w-100">
+                    ${timeConfigHtml}
+                </div>
+                
+                <!-- 设置面板 (默认隐藏) -->
+                <div id="roi-settings-${i}" class="mt-3 p-3 border rounded bg-dark" style="display: none;">
+                    <div class="mb-3">
+                        <label class="form-label small text-light">${(getLang && getLang()==='en') ? 'ROI Name' : 'ROI名称'}</label>
+                        <input type="text" class="form-control form-control-sm bg-secondary text-light border-0" 
+                               value="${name}" onchange="updateROIName(${i}, this.value)">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small text-light">${(getLang && getLang()==='en') ? 'Time Control Mode' : '时间控制模式'}</label>
+                        <select class="form-select form-select-sm" style="background-color: #495057; color: #fff; border: 1px solid #6c757d;"
+                                onchange="updateROITimeMode(${i}, this.value)">
+                            <option value="global" style="background-color: #495057; color: #fff;" ${timeConfig.mode === 'global' ? 'selected' : ''}>${(getLang && getLang()==='en') ? 'Follow Global Settings (Default)' : '跟随全局设置 (默认)'}</option>
+                            <option value="relative" style="background-color: #495057; color: #fff;" ${timeConfig.mode === 'relative' ? 'selected' : ''}>${(getLang && getLang()==='en') ? 'Relative Detection Time (after first detection)' : '相对检测时间 (检测到老鼠后)'}</option>
+                            <option value="precise" style="background-color: #495057; color: #fff;" ${timeConfig.mode === 'precise' ? 'selected' : ''}>${(getLang && getLang()==='en') ? 'Precise Time Range (video absolute time)' : '精确时间段 (视频绝对时间)'}</option>
+                        </select>
+                    </div>
+                    
+                    <div id="roi-time-inputs-${i}" style="display: ${timeConfig.mode === 'global' ? 'none' : 'block'}">
+                        <div class="row g-2">
+                            <div class="col-6">
+                                <label class="form-label small text-light">${(getLang && getLang()==='en') ? 'Start (s)' : '开始 (秒)'}</label>
+                                <input type="number" class="form-control form-control-sm bg-secondary text-light border-0" 
+                                       value="${timeConfig.start}" step="0.1" min="0"
+                                       onchange="updateROITimeRange(${i}, 'start', this.value)">
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label small text-light">${(getLang && getLang()==='en') ? 'End (s)' : '结束 (秒)'}</label>
+                                <input type="number" class="form-control form-control-sm bg-secondary text-light border-0" 
+                                       value="${timeConfig.end}" step="0.1" min="0"
+                                       onchange="updateROITimeRange(${i}, 'end', this.value)">
+                            </div>
+                        </div>
+                        <div class="form-text small text-muted mt-1">
+                            ${timeConfig.mode === 'relative'
+                                ? ((getLang && getLang()==='en') ? 'e.g. start 0, end 300 = begin immediately on detection, last 300s' : '例如: 开始0, 结束300 = 检测到后立即开始，持续300秒')
+                                : ((getLang && getLang()==='en') ? 'Absolute video time' : '视频的绝对时间')}
+                        </div>
+                    </div>
+                </div>
+            `;
+            list.appendChild(item);
+        });
+    }
+
+    // ROI设置辅助函数
+    function toggleROISettings(index) {
+        const el = document.getElementById(`roi-settings-${index}`);
+        el.style.display = el.style.display === 'none' ? 'block' : 'none';
+    }
+
+    function updateROIName(index, value) {
+        if (rois[index].points) {
+            rois[index].name = value;
+        } else {
+            const points = rois[index];
+            rois[index] = { points: points, name: value, time_config: { mode: 'global', start: 0, end: 0 } };
+        }
+        drawROICanvas();
+    }
+
+    function updateROITimeMode(index, mode) {
+        if (!rois[index].time_config) rois[index].time_config = { mode: 'global', start: 0, end: 0 };
+        rois[index].time_config.mode = mode;
+
+        const inputsDiv = document.getElementById(`roi-time-inputs-${index}`);
+        inputsDiv.style.display = mode === 'global' ? 'none' : 'block';
+
+        updateROIList();
+        // 保持设置面板打开
+        setTimeout(() => {
+            const el = document.getElementById(`roi-settings-${index}`);
+            if (el) el.style.display = 'block';
+        }, 0);
+    }
+
+    function updateROITimeRange(index, type, value) {
+        if (!rois[index].time_config) rois[index].time_config = { mode: 'global', start: 0, end: 0 };
+        rois[index].time_config[type] = parseFloat(value) || 0;
+
+        updateROIList();
+        // 保持设置面板打开
+        setTimeout(() => {
+            const el = document.getElementById(`roi-settings-${index}`);
+            if (el) el.style.display = 'block';
+        }, 0);
+    }
+
+    function onROIFrameSliderChange(val) {
+        document.getElementById('frameLabelROI').textContent = `帧 ${val} / ${videoInfo.total_frames - 1}`;
+        debounce('roiSlider', () => loadFrame(parseInt(val), () => drawROICanvas()), 200);
+    }
+
+    function onVideoChange(idx) {
+        currentVideoIdx = parseInt(idx);
+        loadFrame(0, () => drawROICanvas());
+    }
+
+    function goToDebugStep() {
+        if (currentROI.length >= 3) finishCurrentROI();
+        if (rois.length === 0) { alert('请至少绘制一个 ROI'); return; }
+        updateStepStatus(2, true);
+        goToStep(3);
+        updateDebugPreview();
+    }
+
+    // === 步骤3: 调试 ===
+    function onDebugFrameSliderChange(val) {
+        document.getElementById('frameLabelDebug').textContent = `帧 ${val} / ${videoInfo.total_frames - 1}`;
+        debounce('debugSlider', () => updateDebugPreview(parseInt(val)), 200);
+    }
+
+    function toggleDetectionParams() {
+        const method = document.getElementById('bgMethod').value;
+        const tp = document.getElementById('thresholdParams');
+        tp.style.display = (method === 'threshold') ? 'block' : 'none';
+    }
+
+    function updateDebugPreview(frameIdx) {
+        if (frameIdx === undefined) {
+            frameIdx = parseInt(document.getElementById('frameSliderDebug').value);
+        }
+        // 更新滑块标签值
+        ['grayThreshold', 'erosionKernel', 'erosionIter', 'dilationKernel', 'dilationIter', 'minArea'].forEach(id => {
+            const el = document.getElementById(id);
+            const valEl = document.getElementById(id + 'Val');
+            if (el && valEl) valEl.textContent = el.value;
+        });
+
+        const body = {
+            frame: frameIdx,
+            video: currentVideoIdx,
+            bg_method: document.getElementById('bgMethod').value,
+            gray_threshold: document.getElementById('grayThreshold').value,
+            bg_type: document.getElementById('bgType').value,
+            erosion_kernel: document.getElementById('erosionKernel').value,
+            erosion_iter: document.getElementById('erosionIter').value,
+            dilation_kernel: document.getElementById('dilationKernel').value,
+            dilation_iter: document.getElementById('dilationIter').value,
+            min_area: document.getElementById('minArea').value,
+            rois: rois.map(r => ({ points: r.points })),
+        };
+
+        fetch(`/api/debug_preview/${sessionId}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body)
+        })
+            .then(r => r.json())
+            .then(data => {
+                if (data.error) return;
+                drawImageOnCanvas('debugOriginal', data.original);
+                drawImageOnCanvas('debugResult', data.result);
+            })
+            .catch(e => console.error('预览失败:', e));
+    }
+
+    function drawImageOnCanvas(canvasId, base64Data) {
+        const canvas = document.getElementById(canvasId);
+        const ctx = canvas.getContext('2d');
+        const img = new Image();
+        img.onload = function () {
+            canvas.width = img.width;
+            canvas.height = img.height;
+            ctx.drawImage(img, 0, 0);
+        };
+        img.src = 'data:image/jpeg;base64,' + base64Data;
+    }
+
+    let isAnalysisStarting = false;
+
+    function startAnalysis() {
+        if (isAnalysisStarting) return;
+        isAnalysisStarting = true;
+
+        // 禁用所有可能触发预览的控件
+        const disableIds = [
+            'frameSliderDebug', 'bgMethod', 'grayThreshold', 'bgType',
+            'erosionKernel', 'erosionIter', 'dilationKernel', 'dilationIter', 'minArea'
+        ];
+        disableIds.forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.disabled = true;
+        });
+
+        // 处理ROI的时间配置（深拷贝保留time_config）
+        const processedROIs = rois.map(roi => {
+            if (!roi.points) {
+                return {
+                    points: roi,
+                    name: 'ROI',
+                    time_config: { mode: 'global', start: 0, end: 0 }
+                };
+            }
+            const newRoi = JSON.parse(JSON.stringify(roi));
+            if (newRoi.time_config && newRoi.time_config.mode !== 'global') {
+                newRoi.time_config.start = (newRoi.time_config.start || 0);
+                newRoi.time_config.end = (newRoi.time_config.end || 0);
+            }
+            return newRoi;
+        });
+
+        const body = {
+            bg_method: document.getElementById('bgMethod').value,
+            gray_threshold: parseInt(document.getElementById('grayThreshold').value),
+            bg_type: document.getElementById('bgType').value,
+            erosion_kernel: parseInt(document.getElementById('erosionKernel').value),
+            erosion_iter: parseInt(document.getElementById('erosionIter').value),
+            dilation_kernel: parseInt(document.getElementById('dilationKernel').value),
+            dilation_iter: parseInt(document.getElementById('dilationIter').value),
+            min_area: parseInt(document.getElementById('minArea').value),
+            pixel_to_mm: pixelToMm || 1.0,
+            rois: processedROIs,
+            generate_video: document.getElementById('generateVideo').checked,
+        };
+
+        document.getElementById('loading').style.display = 'flex';
+
+        fetch(`/api/start_analysis/${sessionId}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body)
+        })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    window.location.href = `/monitor/${sessionId}`;
+                } else {
+                    isAnalysisStarting = false;
+                    document.getElementById('loading').style.display = 'none';
+                    alert('启动分析失败: ' + (data.error || '未知错误'));
+                }
+            })
+            .catch(e => {
+                isAnalysisStarting = false;
+                document.getElementById('loading').style.display = 'none';
+                alert('请求失败: ' + e);
+            });
+    }
+
+    // === 步骤导航 ===
+    function goToStep(step) {
+        document.querySelectorAll('.step-content').forEach(el => { el.style.display = 'none'; el.classList.remove('active'); });
+        if (step === 1) { document.getElementById('calibration-step').style.display = 'block'; document.getElementById('calibration-step').classList.add('active'); }
+        if (step === 2) {
+            document.getElementById('roi-step').style.display = 'block';
+            const s2 = document.getElementById('frameSliderROI');
+            if (s2) s2.max = videoInfo.total_frames - 1;
+            loadFrame(0, () => drawROICanvas());
+        }
+        if (step === 3) {
+            document.getElementById('debug-step').style.display = 'block';
+            const s3 = document.getElementById('frameSliderDebug');
+            if (s3) s3.max = videoInfo.total_frames - 1;
+        }
+        updateStepStatus(step);
+    }
+
+    function previousStep() {
+        const current = document.querySelector('.step-content[style*="block"]');
+        if (current && current.id === 'debug-step') goToStep(2);
+        else if (current && current.id === 'roi-step') goToStep(1);
+    }
+
+    function updateStepStatus(activeStep, completed) {
+        for (let i = 1; i <= 3; i++) {
+            const nav = document.getElementById('stepNav' + i);
+            if (!nav) continue;
+            nav.classList.remove('active', 'completed');
+            if (i < activeStep || (i === activeStep && completed)) nav.classList.add('completed');
+            else if (i === activeStep) nav.classList.add('active');
+        }
+    }
+</script>
+{% endblock %}

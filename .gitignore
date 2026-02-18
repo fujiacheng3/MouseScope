@@ -1,0 +1,40 @@
+# ===========================
+# MouseScope — .gitignore
+# ===========================
+
+# PyInstaller build artifacts
+build/
+dist/
+
+# User data (never commit experimental data)
+data/uploads/
+data/results/
+
+# Python cache
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+
+# Virtual environments
+venv/
+.venv/
+env/
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE
+.vscode/settings.json
+.idea/
+*.suo
+*.user
+
+# Logs
+*.log
+
+# Temporary files
+*.tmp
+*.bak
