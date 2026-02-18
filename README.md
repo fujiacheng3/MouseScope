@@ -80,10 +80,10 @@ Video Input → ROI Calibration → Background Subtraction
 ### 🔬 Analysis Results | 分析结果展示
 
 <p align="center">
-  <img src="static/img/demo_result.gif" alt="Real-time Analysis" width="700"/>
+  <img src="static/img/demo_result.gif" alt="Analysis Results" width="700"/>
   <br>
-  <em>🎯 Real-time tracking with immobility detection visualization</em><br>
-  <em>🎯 实时追踪与不动性检测可视化</em>
+  <em>🎯 Automated tracking with immobility detection visualization</em><br>
+  <em>🎯 自动追踪与不动性检测可视化</em>
 </p>
 
 ---
@@ -138,22 +138,50 @@ Then open `http://localhost:8080` in your browser.
 
 - **OS**: Windows 10 / 11 (x64)
 - **RAM**: ≥ 8 GB recommended
-- **CPU**: Multi-core (4+ cores recommended for real-time analysis)
+- **CPU**: Multi-core (4+ cores recommended for faster processing)
 - **Storage**: ≥ 500 MB free space
 - **Python**: 3.9 – 3.11 (for source mode)
 
 ---
 
+## ⚠️ Disclaimer | 免责声明
+
+**Important Notice | 重要提示：**
+
+This software is provided as a **research tool** to assist in behavioral analysis. While we strive for accuracy, **results should be manually verified** before use in publications or critical decisions.
+
+本软件作为**研究辅助工具**提供。虽然我们力求准确，但**结果应经人工核验**后方可用于论文发表或重要决策。
+
+**Limitations | 使用限制：**
+- ⚠️ **Accuracy not guaranteed** — Algorithm performance may vary with video quality, lighting conditions, and experimental setup
+  算法准确率不保证 — 性能受视频质量、光照条件和实验设置影响
+- ⚠️ **Manual validation required** — Always cross-check automated results with manual observation
+  需人工验证 — 务必将自动化结果与人工观察交叉核对
+- ⚠️ **For research use only** — Not intended for clinical diagnosis or regulatory submissions
+  仅供研究使用 — 不适用于临床诊断或监管申报
+
+**No Warranty | 无担保条款：**
+
+THIS SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND. The authors assume no liability for any damages resulting from the use of this software.
+
+本软件按"现状"提供，不提供任何形式的担保。作者不对使用本软件造成的任何损失承担责任。
+
+---
+
 ## 📚 Citation | 引用说明
 
-If you use MouseScope Desktop in your research, **please cite**:
+If you use MouseScope in your research, **please cite**:
 
 如果您在研究中使用了本软件，**请务必引用**：
+
+> 📌 **Note**: When reporting results in publications, please mention that automated data were manually validated.
+>
+> 📌 **注意**：在论文中报告结果时，请说明自动化数据已经过人工验证。
 
 ```bibtex
 @software{fu2026mousescope,
   author  = {Fu, Jiacheng (付家丞)},
-  title   = {MouseScope Desktop: Automated Mouse Tail Suspension Test Analysis Software},
+  title   = {MouseScope: Automated Mouse Tail Suspension Test Analysis Software},
   year    = {2026},
   url     = {https://github.com/fujiacheng3/MouseScope},
   version = {1.0}
@@ -162,7 +190,7 @@ If you use MouseScope Desktop in your research, **please cite**:
 
 **Plain text format | 纯文本格式：**
 
-> Fu, J. (2026). *MouseScope Desktop: Automated mouse tail suspension test analysis software* (Version 1.0) [Software]. GitHub. https://github.com/fujiacheng3/MouseScope
+> Fu, J. (2026). *MouseScope: Automated mouse tail suspension test analysis software* (Version 1.0) [Software]. GitHub. https://github.com/fujiacheng3/MouseScope
 
 ---
 
