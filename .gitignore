@@ -38,3 +38,10 @@ desktop.ini
 # Temporary files
 *.tmp
 *.bak
+
+# Video files (use GIF for demos)
+*.mp4
+*.avi
+*.mov
+*.mkv
+*.mp4 

@@ -64,25 +64,27 @@ Video Input → ROI Calibration → Background Subtraction
 
 ---
 
-## 📸 Screenshots | 界面展示
+## 📸 Demo & Screenshots | 演示与界面展示
+
+### 🎬 Complete Tutorial | 完整使用教程
 
 <p align="center">
-  <img src="static/img/screenshot_main.png" alt="Main Interface" width="700" onerror="this.style.display='none'"/>
+  <img src="static/img/demo_tutorial.gif" alt="Usage Tutorial" width="700"/>
   <br>
-  <em>Main analysis interface with real-time tracking visualization</em><br>
-  <em>主界面：实时追踪可视化</em>
+  <em>📹 Complete workflow demonstration: Upload → Calibrate → Analyze → Export</em><br>
+  <em>📹 完整工作流演示：上传 → 标定 → 分析 → 导出</em>
 </p>
+
+---
+
+### 🔬 Analysis Results | 分析结果展示
 
 <p align="center">
-  <img src="static/img/screenshot_roi.png" alt="ROI Calibration" width="700" onerror="this.style.display='none'"/>
+  <img src="static/img/demo_result.gif" alt="Real-time Analysis" width="700"/>
   <br>
-  <em>Interactive ROI selection tool</em><br>
-  <em>交互式 ROI 标定工具</em>
+  <em>🎯 Real-time tracking with immobility detection visualization</em><br>
+  <em>🎯 实时追踪与不动性检测可视化</em>
 </p>
-
-> 💡 **Tip**: Add your own demo GIF or screenshot to `static/img/` to showcase your software in action!
->
-> 💡 **提示**：在 `static/img/` 中添加您自己的演示 GIF 或截图，展示软件实际运行效果！
 
 ---
 
@@ -171,7 +173,7 @@ This software is **free for academic and non-commercial use only**.
 本软件**仅供学术研究和非商业用途免费使用**。
 
 | Use Case | Allowed |
-|----------|---------||
+|----------|---------|
 | Academic research 学术研究 | ✅ Free |
 | Educational use 教学使用 | ✅ Free |
 | Publication (with citation) 发表论文（需引用） | ✅ Free |
