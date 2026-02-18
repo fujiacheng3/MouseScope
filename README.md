@@ -1,4 +1,4 @@
-# 🐭 MouseScope Desktop
+# 🐭 MouseScope
 
 <p align="center">
   <img src="static/img/logo.png" alt="MouseScope Logo" width="160" onerror="this.style.display='none'"/>
